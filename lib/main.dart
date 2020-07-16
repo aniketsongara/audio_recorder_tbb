@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
+
 void main() => runApp(new MyApp());
 
 class MyApp extends StatefulWidget {
@@ -40,17 +41,19 @@ class AppBodyState extends State<AppBody> {
   Recording _recording = new Recording();
   bool _isRecording = false;
   Random random = new Random();
-  bool btnStatus=false;
-  TextEditingController _controller = new TextEditingController();
+  bool btnStatus = false;
+  AudioPlayer audioPlayer;
+  AudioPlayerState audioPlayerState;
+
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
+    _loadFile();
   }
 
   var dir;
-
-
   createDirectory() async {
     dir = await getExternalStorageDirectory();
     final myDir = new io.Directory('${dir.path}/TBB');
@@ -68,12 +71,52 @@ class AppBodyState extends State<AppBody> {
     });
   }
 
-  void play() async {
-    if (_recording.path != null && io.File(_recording.path).existsSync())
-    {
-      AudioPlayer audioPlayer = AudioPlayer();
-      audioPlayer.play(_recording.path, isLocal: true);
-    }else{
+  List<io.FileSystemEntity> _files;
+  List<io.FileSystemEntity> _songs = new List<io.FileSystemEntity>();
+  List<String> audioName = [];
+  bool playerState= false;
+
+  Future _loadFile() async {
+    setState(() {
+      _songs.clear();
+      audioName.clear();
+    });
+
+    io.Directory directory = await getExternalStorageDirectory();
+    final myDir = new io.Directory('${directory.path}/TBB/');
+
+    String mp3Path = myDir.toString();
+    print('mp3path ' + mp3Path);
+    myDir.exists().then((isThere) {
+      if (isThere) {
+        _files = myDir.listSync(recursive: true, followLinks: false);
+        for (io.FileSystemEntity entity in _files) {
+          String path = entity.path;
+          if (path.endsWith('.m4a') || path.endsWith('.mp4'))
+            setState(() {
+              _songs.add(entity);
+              audioName
+                  .add(entity.path.replaceAll('${directory.path}/TBB/', ''));
+            });
+        }
+      }
+    });
+    print('List of array songs is : $_songs');
+    print('List of array songs NAme is : $audioName');
+  }
+
+  void play(int index) async {
+    if (_songs[index].path != null &&
+        io.File(_songs[index].path).existsSync()) {
+      audioPlayer = AudioPlayer();
+      final result = await audioPlayer.play(_songs[index].path,isLocal: true,stayAwake: true);
+      if (result == 1) {
+        print('Audio is playing');
+      }
+
+      print('print path is : - ${_songs[index].path}');
+
+    } else {
       Scaffold.of(context).showSnackBar(
           new SnackBar(content: new Text("You must record first voice")));
     }
@@ -91,42 +134,71 @@ class AppBodyState extends State<AppBody> {
     return true;
   }
 
+  Widget getList() {
+    List<io.FileSystemEntity> list;
+    setState(() {
+      list = _songs;
+    });
+    ListView myList = new ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: list.length,
+        itemBuilder: (context, i) {
+          return ListTile(
+            leading: CircleAvatar(
+              child: Text('${i + 1}'),
+            ),
+            title: Text('${audioName[i]}'),
+            trailing: IconButton(
+                icon: Icon(Icons.play_arrow),
+                onPressed: () {
+                  play(i);
+                }),
+          );
+        });
+
+    return myList;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('TBB Recorder'),centerTitle: true,),
-      body: Center(
-        child: new Padding(
-          padding: new EdgeInsets.all(8.0),
-          child: Column(
-            children: <Widget>[
-              Text(!btnStatus ? '00:00' : _isRecording ? 'Recording...' : '${_recording.duration}'),
-              RaisedButton(onPressed: play,
-              child: !btnStatus ? Text('') : Icon(_isRecording ? Icons.pause: Icons.play_arrow),)
-            ],
-          ),
-        ),
-
+      appBar: AppBar(
+        title: Text('TBB Recorder'),
+        centerTitle: true,
       ),
-
-      floatingActionButton: FloatingActionButton(onPressed: _isRecording ? _stop : _start,
-      child: Icon(_isRecording ? Icons.mic: Icons.mic_off),),
+      body: _isRecording
+          ? Center(
+              child: Text('Recording...'),
+            )
+          : _songs.length > 0
+              ? getList()
+              : Center(
+                  child: Text('No Data Found !'),
+                ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _isRecording ? _stop : _start,
+        child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
+      ),
     );
   }
 
   _start() async {
-    setState(() {
-      btnStatus=true;
-    });
     bool hasPermission = await checkPermission();
     try {
       if (hasPermission) {
+        setState(() {
+          btnStatus = true;
+        });
+
         createDirectory();
+        String fileName =
+            '${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}_${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}:${DateTime.now().millisecond}';
         await AudioRecorder.start(
-            path: dir.path +
-                '/TBB/' +
-                '${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}_${DateTime.now().minute}:${DateTime.now().second}:${DateTime.now().millisecond}',
+            path: dir.path + '/TBB/' + fileName,
             audioOutputFormat: AudioOutputFormat.AAC);
+
+        print(
+            '*********************************custom recording path is : ${dir.path + '/TBB/' + fileName}*********************************');
 
         bool isRecording = await AudioRecorder.isRecording;
         setState(() {
@@ -147,213 +219,14 @@ class AppBodyState extends State<AppBody> {
     print("Stop recording: ${recording.path}");
     bool isRecording = await AudioRecorder.isRecording;
     File file = widget.localFileSystem.file(recording.path);
+    _loadFile();
     print("  File length: ${await file.length()}");
     setState(() {
       _recording = recording;
       _isRecording = isRecording;
     });
-    _controller.text = recording.path;
+    print(
+        '*********************************Recording path is : ${recording.path}*********************************');
   }
 }
 
-/*
-import 'dart:io';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/material.dart';
-import 'dart:async';
-import 'package:path_provider/path_provider.dart';
-import 'package:record_mp3/record_mp3.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-void main() => runApp(MyApp());
-
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  String statusText = "";
-  bool isComplete = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Column(children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              Expanded(
-                child: GestureDetector(
-                  child: Container(
-                    height: 48.0,
-                    decoration: BoxDecoration(color: Colors.red.shade300),
-                    child: Center(
-                      child: Text(
-                        'start',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  onTap: () async {
-                    startRecord();
-                  },
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  child: Container(
-                    height: 48.0,
-                    decoration: BoxDecoration(color: Colors.blue.shade300),
-                    child: Center(
-                      child: Text(
-                        RecordMp3.instance.status == RecordStatus.PAUSE
-                            ? 'resume'
-                            : 'pause',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    pauseRecord();
-                  },
-                ),
-              ),
-              Expanded(
-                child: GestureDetector(
-                  child: Container(
-                    height: 48.0,
-                    decoration: BoxDecoration(color: Colors.green.shade300),
-                    child: Center(
-                      child: Text(
-                        'stop',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                  onTap: () {
-                    stopRecord();
-                  },
-                ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 20.0),
-            child: Text(
-              statusText,
-              style: TextStyle(color: Colors.red, fontSize: 20),
-            ),
-          ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              play();
-            },
-            child: Container(
-              margin: EdgeInsets.only(top: 30),
-              alignment: AlignmentDirectional.center,
-              width: 100,
-              height: 50,
-              child: isComplete && recordFilePath != null
-                  ? Text(
-                "play",
-                style: TextStyle(color: Colors.red, fontSize: 20),
-              )
-                  : Container(),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Future<bool> checkPermission() async {
-    if (!await Permission.microphone.isGranted) {
-      PermissionStatus status = await Permission.microphone.request();
-      if (status != PermissionStatus.granted) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  void startRecord() async {
-    bool hasPermission = await checkPermission();
-    if (hasPermission) {
-      statusText = "Recording...";
-      recordFilePath = await getFilePath();
-      isComplete = false;
-      RecordMp3.instance.start(recordFilePath, (type) {
-        statusText = "Record error--->$type";
-        setState(() {});
-      });
-    } else {
-      statusText = "No microphone permission";
-    }
-    setState(() {});
-  }
-
-  void pauseRecord() {
-    if (RecordMp3.instance.status == RecordStatus.PAUSE) {
-      bool s = RecordMp3.instance.resume();
-      if (s) {
-        statusText = "Recording...";
-        setState(() {});
-      }
-    } else {
-      bool s = RecordMp3.instance.pause();
-      if (s) {
-        statusText = "Recording pause...";
-        setState(() {});
-      }
-    }
-  }
-
-  void stopRecord() {
-    bool s = RecordMp3.instance.stop();
-    if (s) {
-      statusText = "Record complete";
-      isComplete = true;
-      setState(() {});
-    }
-  }
-
-  void resumeRecord() {
-    bool s = RecordMp3.instance.resume();
-    if (s) {
-      statusText = "Recording...";
-      setState(() {});
-    }
-  }
-
-  String recordFilePath;
-
-  void play() {
-    if (recordFilePath != null && File(recordFilePath).existsSync()) {
-      AudioPlayer audioPlayer = AudioPlayer();
-      audioPlayer.play(recordFilePath, isLocal: true);
-    }
-  }
-
-  int i = 0;
-
-  Future<String> getFilePath() async {
-    Directory storageDirectory = await getApplicationDocumentsDirectory();
-    String sdPath = storageDirectory.path + "/record";
-
-    var d = Directory(sdPath);
-    if (!d.existsSync()) {
-      d.createSync(recursive: true);
-    }
-    print('----------------------------------------path is $sdPath-----------------------------------');
-    return sdPath + "/test_${i++}.mp3";
-  }
-
-}
-
-*/
