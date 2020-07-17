@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'player_widget.dart';
 
 void main() => runApp(new MyApp());
 
@@ -20,6 +21,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
+        debugShowCheckedModeBanner: false,
       home: new Scaffold(
         body: new AppBody(),
       ),
@@ -38,13 +40,11 @@ class AppBody extends StatefulWidget {
 }
 
 class AppBodyState extends State<AppBody> {
-  Recording _recording = new Recording();
+  //Recording _recording = new Recording();
   bool _isRecording = false;
   Random random = new Random();
   bool btnStatus = false;
   AudioPlayer audioPlayer;
-  AudioPlayerState audioPlayerState;
-
 
   @override
   void initState() {
@@ -54,6 +54,7 @@ class AppBodyState extends State<AppBody> {
   }
 
   var dir;
+
   createDirectory() async {
     dir = await getExternalStorageDirectory();
     final myDir = new io.Directory('${dir.path}/TBB');
@@ -74,7 +75,7 @@ class AppBodyState extends State<AppBody> {
   List<io.FileSystemEntity> _files;
   List<io.FileSystemEntity> _songs = new List<io.FileSystemEntity>();
   List<String> audioName = [];
-  bool playerState= false;
+  bool playerState = false;
 
   Future _loadFile() async {
     setState(() {
@@ -105,21 +106,10 @@ class AppBodyState extends State<AppBody> {
     print('List of array songs NAme is : $audioName');
   }
 
-  void play(int index) async {
-    if (_songs[index].path != null &&
-        io.File(_songs[index].path).existsSync()) {
-      audioPlayer = AudioPlayer();
-      final result = await audioPlayer.play(_songs[index].path,isLocal: true,stayAwake: true);
-      if (result == 1) {
-        print('Audio is playing');
-      }
-
-      print('print path is : - ${_songs[index].path}');
-
-    } else {
-      Scaffold.of(context).showSnackBar(
-          new SnackBar(content: new Text("You must record first voice")));
-    }
+  deleteFile(String filePath) async {
+    final dir = io.Directory(filePath);
+    dir.deleteSync(recursive: true);
+    _loadFile();
   }
 
   Future<bool> checkPermission() async {
@@ -140,19 +130,38 @@ class AppBodyState extends State<AppBody> {
       list = _songs;
     });
     ListView myList = new ListView.builder(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.only(
+            top: 16.0, bottom: 16.0, left: 10.0, right: 10.0),
         itemCount: list.length,
         itemBuilder: (context, i) {
           return ListTile(
             leading: CircleAvatar(
-              child: Text('${i + 1}'),
+              backgroundColor: Theme.of(context).primaryColor,
+              child: Icon(
+                Icons.settings_voice,
+                color: Colors.white,
+              ),
             ),
             title: Text('${audioName[i]}'),
             trailing: IconButton(
-                icon: Icon(Icons.play_arrow),
-                onPressed: () {
-                  play(i);
-                }),
+              onPressed: () {
+                deleteFile(_songs[i].path);
+              },
+              icon: Icon(
+                Icons.delete,
+                color: Colors.black54,
+              ),
+            ),
+            onTap: () {
+              showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) {
+                    return PlayerWidget(
+                      url: _songs[i].uri.toString(),
+                    );
+                  });
+            },
           );
         });
 
@@ -167,8 +176,21 @@ class AppBodyState extends State<AppBody> {
         centerTitle: true,
       ),
       body: _isRecording
-          ? Center(
-              child: Text('Recording...'),
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Center(
+                  child: Icon(
+                    Icons.record_voice_over,
+                    color: Colors.green,
+                    size: 60.0,
+                  ),
+                ),
+                Center(
+                  child: Text('Recording...'),
+                )
+              ],
             )
           : _songs.length > 0
               ? getList()
@@ -176,6 +198,8 @@ class AppBodyState extends State<AppBody> {
                   child: Text('No Data Found !'),
                 ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor:
+            _isRecording ? Colors.green : Theme.of(context).primaryColor,
         onPressed: _isRecording ? _stop : _start,
         child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
       ),
@@ -202,7 +226,7 @@ class AppBodyState extends State<AppBody> {
 
         bool isRecording = await AudioRecorder.isRecording;
         setState(() {
-          _recording = new Recording(duration: new Duration(), path: "");
+          //_recording = new Recording(duration: new Duration(), path: "");
           _isRecording = isRecording;
         });
       } else {
@@ -222,11 +246,10 @@ class AppBodyState extends State<AppBody> {
     _loadFile();
     print("  File length: ${await file.length()}");
     setState(() {
-      _recording = recording;
+      //_recording = recording;
       _isRecording = isRecording;
     });
     print(
         '*********************************Recording path is : ${recording.path}*********************************');
   }
 }
-

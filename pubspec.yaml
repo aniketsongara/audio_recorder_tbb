@@ -33,8 +33,7 @@ dependencies:
   permission_handler:
   record_mp3:
   audioplayers:
-  #audioplayer:
-  #simple_permissions:
+
 
 dev_dependencies:
   flutter_test:
