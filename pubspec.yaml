@@ -33,6 +33,9 @@ dependencies:
   permission_handler:
   record_mp3:
   audioplayers:
+  camera:
+  video_player:
+  fluttertoast:
 
 
 dev_dependencies:
