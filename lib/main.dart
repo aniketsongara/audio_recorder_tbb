@@ -11,14 +11,9 @@ import 'package:audioplayers/audioplayers.dart';
 import 'player_widget.dart';
 import 'package:camera/camera.dart';
 import 'video_recorder.dart';
+
 List<CameraDescription> cameras = [];
-void main() async {
-  try {
-    WidgetsFlutterBinding.ensureInitialized();
-    cameras = await availableCameras();
-  } on CameraException catch (e) {
-    logError(e.code, e.description);
-  }
+void main() {
   runApp(new MyApp());}
 
 class MyApp extends StatefulWidget {
@@ -37,6 +32,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
+
 
 class AppBody extends StatefulWidget {
   final LocalFileSystem localFileSystem;
@@ -183,6 +179,20 @@ class AppBodyState extends State<AppBody> {
       appBar: AppBar(
         title: Text('TBB Recorder'),
         centerTitle: true,
+        actions: <Widget>[
+          IconButton(icon: Icon(Icons.keyboard_arrow_right), onPressed: ()async{
+            try {
+              WidgetsFlutterBinding.ensureInitialized();
+              cameras = await availableCameras();
+            } on CameraException catch (e) {
+              logError(e.code, e.description);
+            }
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => VideoHome()),
+            );
+          })
+        ],
       ),
       body: _isRecording
           ? Column(
@@ -206,7 +216,8 @@ class AppBodyState extends State<AppBody> {
               : Center(
                   child: Text('No Data Found !'),
                 ),
-      floatingActionButton: Row(
+      floatingActionButton:
+     /* Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: <Widget>[
           FloatingActionButton(
@@ -220,7 +231,12 @@ class AppBodyState extends State<AppBody> {
             backgroundColor:
             _isRecording ? Colors.green : Theme.of(context).primaryColor,
             onPressed: () async{
-
+              try {
+                WidgetsFlutterBinding.ensureInitialized();
+                cameras = await availableCameras();
+              } on CameraException catch (e) {
+                logError(e.code, e.description);
+              }
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => VideoRecorder()),
@@ -229,6 +245,12 @@ class AppBodyState extends State<AppBody> {
             child: Icon(_isRecording ? Icons.videocam : Icons.videocam_off),
           )
         ],
+      )*/
+     FloatingActionButton(
+        backgroundColor:
+        _isRecording ? Colors.green : Theme.of(context).primaryColor,
+        onPressed: _isRecording ? _stop : _start,
+        child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
       ),
     );
   }
