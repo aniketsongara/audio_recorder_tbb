@@ -13,8 +13,10 @@ import 'package:camera/camera.dart';
 import 'video_recorder.dart';
 
 List<CameraDescription> cameras = [];
-void main() {
-  runApp(new MyApp());}
+void main()
+{
+  runApp(new MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override
@@ -98,7 +100,7 @@ class AppBodyState extends State<AppBody> {
         _files = myDir.listSync(recursive: true, followLinks: false);
         for (io.FileSystemEntity entity in _files) {
           String path = entity.path;
-          if (path.endsWith('.m4a') || path.endsWith('.mp4'))
+          if (path.endsWith('.m4a') || path.endsWith('.mp3'))
             setState(() {
               _songs.add(entity);
               audioName
@@ -217,35 +219,6 @@ class AppBodyState extends State<AppBody> {
                   child: Text('No Data Found !'),
                 ),
       floatingActionButton:
-     /* Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
-          FloatingActionButton(
-            backgroundColor:
-            _isRecording ? Colors.green : Theme.of(context).primaryColor,
-            onPressed: _isRecording ? _stop : _start,
-            child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
-          ),
-          Padding(padding: EdgeInsets.all(6.0),),
-          FloatingActionButton(
-            backgroundColor:
-            _isRecording ? Colors.green : Theme.of(context).primaryColor,
-            onPressed: () async{
-              try {
-                WidgetsFlutterBinding.ensureInitialized();
-                cameras = await availableCameras();
-              } on CameraException catch (e) {
-                logError(e.code, e.description);
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => VideoRecorder()),
-              );
-            },
-            child: Icon(_isRecording ? Icons.videocam : Icons.videocam_off),
-          )
-        ],
-      )*/
      FloatingActionButton(
         backgroundColor:
         _isRecording ? Colors.green : Theme.of(context).primaryColor,
@@ -303,13 +276,3 @@ class AppBodyState extends State<AppBody> {
         '*********************************Recording path is : ${recording.path}*********************************');
   }
 }
-
-
-/*
-  try {
-    WidgetsFlutterBinding.ensureInitialized();
-    cameras = await availableCameras();
-  } on CameraException catch (e) {
-    logError(e.code, e.description);
-  }
-  */
