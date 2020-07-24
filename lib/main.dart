@@ -1,3 +1,4 @@
+
 import 'dart:io' as io;
 import 'dart:math';
 import 'dart:async';
@@ -5,6 +6,7 @@ import 'package:audio_recorder/audio_recorder.dart';
 import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -219,12 +221,30 @@ class AppBodyState extends State<AppBody> {
                   child: Text('No Data Found !'),
                 ),
       floatingActionButton:
-     FloatingActionButton(
-        backgroundColor:
-        _isRecording ? Colors.green : Theme.of(context).primaryColor,
-        onPressed: _isRecording ? _stop : _start,
-        child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
-      ),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          FloatingActionButton(
+            onPressed: () async {
+             Navigator.push(context,MaterialPageRoute(builder: (context)=>VideoHome()));
+
+            },
+            child: Icon(Icons.videocam),
+            tooltip: "Capture a video",
+          ),
+          const SizedBox(
+            width: 5.0,
+          ),
+          FloatingActionButton(
+            backgroundColor:
+            _isRecording ? Colors.green : Theme.of(context).primaryColor,
+            onPressed: _isRecording ? _stop : _start,
+            child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
+          )
+        ],
+      )
+    ,
     );
   }
   void logError(String code, String message) =>

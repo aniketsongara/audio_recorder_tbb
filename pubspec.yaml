@@ -36,7 +36,8 @@ dependencies:
   camera:
   video_player:
   fluttertoast:
-  #video_thumbnail:
+  video_thumbnail:
+  image_picker:
 
 
 dev_dependencies:
