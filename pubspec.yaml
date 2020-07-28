@@ -31,11 +31,11 @@ dependencies:
   audio_recorder:
   path_provider:
   permission_handler:
-  record_mp3:
+  #record_mp3:
   audioplayers:
-  camera:
+  #camera:
   video_player:
-  fluttertoast:
+  #fluttertoast:
   #thumbnails:
   image_picker:
 

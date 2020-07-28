@@ -1,4 +1,3 @@
-
 import 'dart:io' as io;
 import 'dart:math';
 import 'dart:async';
@@ -11,11 +10,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
-import 'package:camera/camera.dart';
 
-List<CameraDescription> cameras = [];
-void main()
-{
+
+void main() {
   runApp(new MyApp());
 }
 
@@ -28,7 +25,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
-        debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false,
       home: new Scaffold(
         body: new AppBody(),
       ),
@@ -62,13 +59,14 @@ class AppBodyState extends State<AppBody> {
   }
 
   var dir;
+
   createDirectory() async {
     dir = await getExternalStorageDirectory();
     final myDir = new io.Directory('${dir.path}/TBB');
     myDir.exists().then((isThere) {
       if (!isThere) {
         new io.Directory('${dir.path}/TBB').create(recursive: true)
-            // The created directory is returned as a Future.
+        // The created directory is returned as a Future.
             .then((io.Directory directory) {
           print(
               '-------------------${directory.path}--------------------------');
@@ -100,7 +98,8 @@ class AppBodyState extends State<AppBody> {
         _files = myDir.listSync(recursive: true, followLinks: false);
         for (io.FileSystemEntity entity in _files) {
           String path = entity.path;
-          if (path.endsWith('.m4a') || path.endsWith('.mp3') || path.endsWith('.mp4'))
+          if (path.endsWith('.m4a') || path.endsWith('.mp3') ||
+              path.endsWith('.mp4'))
             setState(() {
               _audio.add(entity);
               audioName
@@ -120,7 +119,9 @@ class AppBodyState extends State<AppBody> {
   }
 
   Future<bool> checkPermission() async {
-    if (!await Permission.microphone.isGranted && await Permission.storage.isGranted) {
+    print('Checking permissions.....');
+    if (!await Permission.microphone.isGranted &&
+        !await Permission.storage.isGranted) {
       PermissionStatus statusMicrophone = await Permission.microphone.request();
       PermissionStatus statusStorage = await Permission.storage.request();
       if (statusMicrophone != PermissionStatus.granted &&
@@ -143,20 +144,22 @@ class AppBodyState extends State<AppBody> {
         itemBuilder: (context, i) {
           return ListTile(
             leading: CircleAvatar(
-              backgroundColor: Theme.of(context).primaryColor,
+              backgroundColor: Theme
+                  .of(context)
+                  .primaryColor,
               child: _audio[i].path.contains('.mp4') ?
-              Icon( Icons.play_circle_filled ,
+              Icon(Icons.play_circle_filled,
                 color: Colors.white,
               )
-                  : Icon( Icons.settings_voice ,
+                  : Icon(Icons.settings_voice,
                 color: Colors.white,
               ),
             ),
             title: Text('${audioName[i]}'),
             trailing: IconButton(
               onPressed: () {
-              deleteFile(_audio[i].path);
-            //    _getThumbnail(_audio[i].uri.toString());
+                deleteFile(_audio[i].path);
+                //    _getThumbnail(_audio[i].uri.toString());
               },
               icon: Icon(
                 Icons.delete,
@@ -164,8 +167,8 @@ class AppBodyState extends State<AppBody> {
               ),
             ),
             onTap: () {
-
-              if(_audio[i].path.contains('mp3') || _audio[i].path.contains('m4a')){
+              if (_audio[i].path.contains('mp3') ||
+                  _audio[i].path.contains('m4a')) {
                 showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -174,7 +177,7 @@ class AppBodyState extends State<AppBody> {
                         url: _audio[i].uri.toString(),
                       );
                     });
-              }else{
+              } else {
                 showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -182,9 +185,8 @@ class AppBodyState extends State<AppBody> {
                       return VideoPlayerScreen(_audio[i],
                       );
                     });
-               // Navigator.push(context, MaterialPageRoute(builder: (context)=>VideoPlayerScreen(_files[i])));
+                // Navigator.push(context, MaterialPageRoute(builder: (context)=>VideoPlayerScreen(_files[i])));
               }
-
             },
           );
         });
@@ -198,74 +200,59 @@ class AppBodyState extends State<AppBody> {
       appBar: AppBar(
         title: Text('TBB Recorder'),
         centerTitle: true,
-     /*   actions: <Widget>[
-          IconButton(icon: Icon(Icons.keyboard_arrow_right), onPressed: ()async{
-            try {
-              WidgetsFlutterBinding.ensureInitialized();
-              cameras = await availableCameras();
-            } on CameraException catch (e) {
-              logError(e.code, e.description);
-            }
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => VideoHome()),
-            );
-          })
-        ],*/
       ),
       body: _isRecording
           ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                Center(
-                  child: Icon(
-                    Icons.record_voice_over,
-                    color: Colors.green,
-                    size: 60.0,
-                  ),
-                ),
-                Center(
-                  child: Text('Recording...'),
-                )
-              ],
-            )
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Center(
+            child: Icon(
+              Icons.record_voice_over,
+              color: Colors.green,
+              size: 60.0,
+            ),
+          ),
+          Center(
+            child: Text('Recording...'),
+          )
+        ],
+      )
           : _audio.length > 0
-              ? getList()
-              : Center(
-                  child: Text('No Data Found !'),
-                ),
+          ? getList()
+          : Center(
+        child: Text('No Data Found !'),
+      ),
       floatingActionButton:
       Row(
         mainAxisAlignment: MainAxisAlignment.end,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-         Visibility(child:  FloatingActionButton(
-          // mini: true,
-           onPressed: _videoStart/*() async {
-             Navigator.push(context,MaterialPageRoute(builder: (context)=>VideoHome()));
-
-            }*/,
-           child: Icon(Icons.videocam),
-           tooltip: "Capture a video",
-         ),visible: !_isRecording,),
+          Visibility(child: FloatingActionButton(
+             onPressed: _videoStart,
+            child: Icon(Icons.videocam),
+            tooltip: "Capture a video",
+          ), visible: !_isRecording,),
           const SizedBox(
             width: 5.0,
           ),
           FloatingActionButton(
-           // mini: !_isRecording,
-            backgroundColor:
-            _isRecording ? Colors.green : Theme.of(context).primaryColor,
+             backgroundColor:
+            _isRecording ? Colors.green : Theme
+                .of(context)
+                .primaryColor,
             onPressed: _isRecording ? _stop : _start,
             child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
           )
         ],
       )
-    ,
+      ,
     );
   }
+
   void logError(String code, String message) =>
       print('Error: $code\nError Message: $message');
+
   _start() async {
     bool hasPermission = await checkPermission();
     try {
@@ -276,13 +263,28 @@ class AppBodyState extends State<AppBody> {
 
         createDirectory();
         String fileName =
-            '${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}_${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}:${DateTime.now().millisecond}';
+            '${DateTime
+            .now()
+            .day}-${DateTime
+            .now()
+            .month}-${DateTime
+            .now()
+            .year}_${DateTime
+            .now()
+            .hour}:${DateTime
+            .now()
+            .minute}:${DateTime
+            .now()
+            .second}:${DateTime
+            .now()
+            .millisecond}';
         await AudioRecorder.start(
             path: dir.path + '/TBB/' + fileName,
             audioOutputFormat: AudioOutputFormat.AAC);
 
         print(
-            '*********************************custom recording path is : ${dir.path + '/TBB/' + fileName}*********************************');
+            '*********************************custom recording path is : ${dir
+                .path + '/TBB/' + fileName}*********************************');
 
         bool isRecording = await AudioRecorder.isRecording;
         setState(() {
@@ -297,6 +299,7 @@ class AppBodyState extends State<AppBody> {
       print(e);
     }
   }
+
   _stop() async {
     var recording = await AudioRecorder.stop();
     print("Stop recording: ${recording.path}");
@@ -309,59 +312,74 @@ class AppBodyState extends State<AppBody> {
       _isRecording = isRecording;
     });
     print(
-        '*********************************Recording path is : ${recording.path}*********************************');
+        '*********************************Recording path is : ${recording
+            .path}*********************************');
   }
 
   _videoStart() async
   {
     bool hasPermission = await checkPermission();
-    if(hasPermission){
-     createDirectory();
-     _videoRecord();
-
+    if (hasPermission) {
+      createDirectory();
+      _videoRecord();
     } else {
       Scaffold.of(context).showSnackBar(
           new SnackBar(content: new Text("You must accept permissions")));
     }
   }
+
   io.File _videoFile;
-  Future _videoRecord() async{
-      try{
-        final io.File video = await ImagePicker.pickVideo(source: ImageSource.camera);
 
-        io.Directory localDir = await getExternalStorageDirectory();
-        String fileName =
-            '${DateTime.now().day}-${DateTime.now().month}-${DateTime.now().year}_${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second}:${DateTime.now().millisecond}';
+  Future _videoRecord() async {
+    try {
+      final io.File video = await ImagePicker.pickVideo(
+          source: ImageSource.camera);
 
-        final io.File newImage = await video.copy('${localDir.path}/TBB/$fileName.mp4');
+      io.Directory localDir = await getExternalStorageDirectory();
+      String fileName =
+          '${DateTime
+          .now()
+          .day}-${DateTime
+          .now()
+          .month}-${DateTime
+          .now()
+          .year}_${DateTime
+          .now()
+          .hour}:${DateTime
+          .now()
+          .minute}:${DateTime
+          .now()
+          .second}:${DateTime
+          .now()
+          .millisecond}';
 
-        final tempDir = io.Directory(video.path);
-        tempDir.deleteSync(recursive: true);
+      final io.File newImage = await video.copy(
+          '${localDir.path}/TBB/$fileName.mp4');
 
-        setState(() {
-          _videoFile = newImage;
-        });
+      final tempDir = io.Directory(video.path);
+      tempDir.deleteSync(recursive: true);
 
-        if(_videoFile.path!=null){
-          _loadFile();
-        }
-      }catch(e){
+      setState(() {
+        _videoFile = newImage;
+      });
 
-        print('Error is : '+e.toString());
-
+      if (_videoFile.path != null) {
+        _loadFile();
       }
-
+    } catch (e) {
+      print('Error is : ' + e.toString());
+    }
   }
-
 
 
 }
 
 
-
 class VideoPlayerScreen extends StatefulWidget {
   io.File _file;
+
   VideoPlayerScreen(this._file);
+
   @override
   _VideoPlayerScreenState createState() => _VideoPlayerScreenState();
 }
@@ -391,7 +409,9 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(content: Container(
+    return AlertDialog(
+      backgroundColor: Colors.black,
+      content: Container(
       // padding: const EdgeInsets.all(20),
       color: Colors.transparent,
       child: AspectRatio(
@@ -480,9 +500,17 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   get _isPaused => _playerState == PlayerState.paused;
 
-  get _durationText => _duration?.toString()?.split('.')?.first ?? '';
+  get _durationText =>
+      _duration
+          ?.toString()
+          ?.split('.')
+          ?.first ?? '';
 
-  get _positionText => _position?.toString()?.split('.')?.first ?? '';
+  get _positionText =>
+      _position
+          ?.toString()
+          ?.split('.')
+          ?.first ?? '';
 
   _PlayerWidgetState(this.url, this.mode);
 
@@ -518,14 +546,18 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                 iconSize: 35.0,
                 onPressed: _isPlaying ? _pause : _play,
                 icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
-                color: Theme.of(context).primaryColor,
+                color: Theme
+                    .of(context)
+                    .primaryColor,
               ),
               IconButton(
                 key: Key('stop_button'),
                 onPressed: _isPlaying || _isPaused ? () => _stop() : null,
                 icon: Icon(Icons.stop),
                 iconSize: 35.0,
-                color: Theme.of(context).primaryColor,
+                color: Theme
+                    .of(context)
+                    .primaryColor,
               ),
             ],
           ),
@@ -574,7 +606,9 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       setState(() => _duration = duration);
 
       // TODO implemented for iOS, waiting for android impl
-      if (Theme.of(context).platform == TargetPlatform.iOS) {
+      if (Theme
+          .of(context)
+          .platform == TargetPlatform.iOS) {
         // (Optional) listen for notification updates in the background
         _audioPlayer.startHeadlessService();
 
@@ -594,9 +628,10 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     });
 
     _positionSubscription =
-        _audioPlayer.onAudioPositionChanged.listen((p) => setState(() {
-          _position = p;
-        }));
+        _audioPlayer.onAudioPositionChanged.listen((p) =>
+            setState(() {
+              _position = p;
+            }));
 
     _playerCompleteSubscription =
         _audioPlayer.onPlayerCompletion.listen((event) {
