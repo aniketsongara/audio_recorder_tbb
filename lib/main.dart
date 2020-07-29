@@ -1,6 +1,7 @@
 import 'dart:io' as io;
 import 'dart:math';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:audio_recorder/audio_recorder.dart';
 import 'package:file/file.dart';
 import 'package:file/local.dart';
@@ -10,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
-
+import 'package:video_thumbnail/video_thumbnail.dart';
 
 void main() {
   runApp(new MyApp());
@@ -79,13 +80,17 @@ class AppBodyState extends State<AppBody> {
 
   List<io.FileSystemEntity> _files;
   List<io.FileSystemEntity> _audio = new List<io.FileSystemEntity>();
+  List<io.FileSystemEntity> _thumbnail = new List<io.FileSystemEntity>();
   List<String> audioName = [];
+  List<String> thumbnailName = [];
   bool playerState = false;
 
   Future _loadFile() async {
     setState(() {
       _audio.clear();
       audioName.clear();
+      _thumbnail.clear();
+      thumbnailName.clear();
     });
 
     io.Directory directory = await getExternalStorageDirectory();
@@ -100,11 +105,19 @@ class AppBodyState extends State<AppBody> {
           String path = entity.path;
           if (path.endsWith('.m4a') || path.endsWith('.mp3') ||
               path.endsWith('.mp4'))
+           {
+             setState(() {
+               _audio.add(entity);
+               audioName
+                   .add(entity.path.replaceAll('${directory.path}/TBB/', ''));
+             });
+           }else if(path.endsWith('.png')){
             setState(() {
-              _audio.add(entity);
-              audioName
+              _thumbnail.add(entity);
+              thumbnailName
                   .add(entity.path.replaceAll('${directory.path}/TBB/', ''));
             });
+          }
         }
       }
     });
@@ -112,9 +125,21 @@ class AppBodyState extends State<AppBody> {
     print('List of array songs NAme is : $audioName');
   }
 
-  deleteFile(String filePath) async {
-    final dir = io.Directory(filePath);
-    dir.deleteSync(recursive: true);
+  deleteFile(String filePath,String fileName) async {
+    if(filePath.contains('mp4')){
+      for(int p=0;p<_thumbnail.length;p++){
+        if(thumbnailName[p].replaceAll('.png', '').contains(fileName.replaceAll('.mp4', ''))){
+          final dir = io.Directory(_thumbnail[p].path);
+          dir.deleteSync(recursive: true);
+        }
+      }
+
+      final dir = io.Directory(filePath);
+      dir.deleteSync(recursive: true);
+    }else{
+      final dir = io.Directory(filePath);
+      dir.deleteSync(recursive: true);
+    }
     _loadFile();
   }
 
@@ -143,23 +168,30 @@ class AppBodyState extends State<AppBody> {
         itemCount: list.length,
         itemBuilder: (context, i) {
           return ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Theme
+            leading: _audio[i].path.contains('.mp4') ?
+            Container(
+              width: 45.0,
+              height: 45.0,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                    fit: BoxFit.cover, image: FileImage(_thumbnail[thumbnailName.indexOf(audioName[i].replaceAll('.mp4', '.png'))],)),
+                borderRadius: BorderRadius.all(Radius.circular(200.0)),
+                color: Theme.of(context).primaryColor,
+              ),
+              child: Center(child: Icon(Icons.play_arrow,color: Colors.white70,),),
+            )
+                :CircleAvatar(
+              backgroundColor:Theme
                   .of(context)
                   .primaryColor,
-              child: _audio[i].path.contains('.mp4') ?
-              Icon(Icons.play_circle_filled,
+              child: Icon(Icons.settings_voice,
                 color: Colors.white,
-              )
-                  : Icon(Icons.settings_voice,
-                color: Colors.white,
-              ),
+              ) ,
             ),
             title: Text('${audioName[i]}'),
             trailing: IconButton(
               onPressed: () {
-                deleteFile(_audio[i].path);
-                //    _getThumbnail(_audio[i].uri.toString());
+                deleteFile(_audio[i].path,audioName[i]);
               },
               icon: Icon(
                 Icons.delete,
@@ -241,7 +273,7 @@ class AppBodyState extends State<AppBody> {
             _isRecording ? Colors.green : Theme
                 .of(context)
                 .primaryColor,
-            onPressed: _isRecording ? _stop : _start,
+            onPressed: _isRecording ? _stopAudioRecording : _startAudioRecording,
             child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
           )
         ],
@@ -253,7 +285,7 @@ class AppBodyState extends State<AppBody> {
   void logError(String code, String message) =>
       print('Error: $code\nError Message: $message');
 
-  _start() async {
+  _startAudioRecording() async {
     bool hasPermission = await checkPermission();
     try {
       if (hasPermission) {
@@ -263,7 +295,7 @@ class AppBodyState extends State<AppBody> {
 
         createDirectory();
         String fileName =
-            '${DateTime
+            'AUD_${DateTime
             .now()
             .day}-${DateTime
             .now()
@@ -300,7 +332,7 @@ class AppBodyState extends State<AppBody> {
     }
   }
 
-  _stop() async {
+  _stopAudioRecording() async {
     var recording = await AudioRecorder.stop();
     print("Stop recording: ${recording.path}");
     bool isRecording = await AudioRecorder.isRecording;
@@ -337,7 +369,7 @@ class AppBodyState extends State<AppBody> {
 
       io.Directory localDir = await getExternalStorageDirectory();
       String fileName =
-          '${DateTime
+          'VID_${DateTime
           .now()
           .day}-${DateTime
           .now()
@@ -359,6 +391,8 @@ class AppBodyState extends State<AppBody> {
       final tempDir = io.Directory(video.path);
       tempDir.deleteSync(recursive: true);
 
+      genThumbnailFile('${localDir.path}/TBB/$fileName.mp4', localDir.path+'/TBB/');
+
       setState(() {
         _videoFile = newImage;
       });
@@ -371,6 +405,39 @@ class AppBodyState extends State<AppBody> {
     }
   }
 
+  genThumbnailFile(String _videoPath,String _tempDir) async {
+    //WidgetsFlutterBinding.ensureInitialized();
+    Uint8List bytes;
+    //final Completer<String> completer = Completer();
+    if (_tempDir != null) {
+      final thumbnailPath = await VideoThumbnail.thumbnailFile(
+          video: _videoPath,
+          thumbnailPath: _tempDir,
+          imageFormat: ImageFormat.PNG,
+          maxHeight: 300,
+          maxWidth: 300,
+          timeMs: 0,
+          quality: 50);
+
+      print("thumbnail file is located: $thumbnailPath");
+
+      final file = io.File(thumbnailPath);
+      bytes = file.readAsBytesSync();
+    } else {
+      bytes = await VideoThumbnail.thumbnailData(
+          video: _videoPath,
+          imageFormat: ImageFormat.PNG,
+          maxHeight: 300,
+          maxWidth: 300,
+          timeMs: 0,
+          quality: 50);
+    }
+
+    int _imageDataSize = bytes.length;
+    print("image size: $_imageDataSize");
+
+    //return r.thumbnailPath;
+  }
 
 }
 

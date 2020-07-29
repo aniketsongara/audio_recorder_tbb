@@ -35,7 +35,7 @@ dependencies:
   audioplayers:
   #camera:
   video_player:
-  #fluttertoast:
+  video_thumbnail:
   #thumbnails:
   image_picker:
 
