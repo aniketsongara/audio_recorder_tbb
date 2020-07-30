@@ -81,8 +81,8 @@ class AppBodyState extends State<AppBody> {
   List<io.FileSystemEntity> _files;
   List<io.FileSystemEntity> _audio = new List<io.FileSystemEntity>();
   List<io.FileSystemEntity> _thumbnail = new List<io.FileSystemEntity>();
-  List<String> audioName = [];
-  List<String> thumbnailName = [];
+  List<String> audioName = new List<String>();
+  List<String> thumbnailName =  new List<String>();
   bool playerState = false;
 
   Future _loadFile() async {
@@ -103,15 +103,18 @@ class AppBodyState extends State<AppBody> {
         _files = myDir.listSync(recursive: true, followLinks: false);
         for (io.FileSystemEntity entity in _files) {
           String path = entity.path;
-          if (path.endsWith('.m4a') || path.endsWith('.mp3') ||
-              path.endsWith('.mp4'))
-           {
-             setState(() {
-               _audio.add(entity);
-               audioName
-                   .add(entity.path.replaceAll('${directory.path}/TBB/', ''));
-             });
-           }else if(path.endsWith('.png')){
+          if (path.endsWith('.m4a') || path.contains('JPEG') || path.endsWith('.mp3') ||
+              path.endsWith('.mp4')) {
+
+            print('Added Audio & Video Data....!!!!!!!!!!!!');
+            setState(() {
+              _audio.add(entity);
+              audioName
+                  .add(entity.path.replaceAll('${directory.path}/TBB/', ''));
+            });
+
+          } else if (path.endsWith('.png')) {
+            print('Added Png Data....!!!!!!!!!!!!');
             setState(() {
               _thumbnail.add(entity);
               thumbnailName
@@ -121,14 +124,22 @@ class AppBodyState extends State<AppBody> {
         }
       }
     });
-    print('List of array songs is : $_audio');
-    print('List of array songs NAme is : $audioName');
+    print('List of array _thumbnail is : $_thumbnail');
+    print('List of array thumbnailName is : $thumbnailName');
   }
 
-  deleteFile(String filePath,String fileName) async {
-    if(filePath.contains('mp4')){
-      for(int p=0;p<_thumbnail.length;p++){
-        if(thumbnailName[p].replaceAll('.png', '').contains(fileName.replaceAll('.mp4', ''))){
+ Widget ImagePreview(io.File imageFile){
+    return AlertDialog(
+      contentPadding: const EdgeInsets.all(5),
+      content: Image.file(imageFile),
+    );
+  }
+
+  deleteFile(String filePath, String fileName) async {
+    if (filePath.contains('mp4')) {
+      for (int p = 0; p < _thumbnail.length; p++) {
+        if (thumbnailName[p].replaceAll('.png', '').contains(
+            fileName.replaceAll('.mp4', ''))) {
           final dir = io.Directory(_thumbnail[p].path);
           dir.deleteSync(recursive: true);
         }
@@ -136,7 +147,7 @@ class AppBodyState extends State<AppBody> {
 
       final dir = io.Directory(filePath);
       dir.deleteSync(recursive: true);
-    }else{
+    } else {
       final dir = io.Directory(filePath);
       dir.deleteSync(recursive: true);
     }
@@ -168,30 +179,41 @@ class AppBodyState extends State<AppBody> {
         itemCount: list.length,
         itemBuilder: (context, i) {
           return ListTile(
-            leading: _audio[i].path.contains('.mp4') ?
+            leading: _audio[i].path.endsWith('.mp4') ?
             Container(
               width: 45.0,
               height: 45.0,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                    fit: BoxFit.cover, image: FileImage(_thumbnail[thumbnailName.indexOf(audioName[i].replaceAll('.mp4', '.png'))],)),
+                    fit: BoxFit.cover,
+                    image: FileImage(_thumbnail[thumbnailName.indexOf(
+                        audioName[i].replaceAll('.mp4', '.png'))],)),
                 borderRadius: BorderRadius.all(Radius.circular(200.0)),
-                color: Theme.of(context).primaryColor,
+                color: Theme
+                    .of(context)
+                    .primaryColor,
               ),
-              child: Center(child: Icon(Icons.play_arrow,color: Colors.white70,),),
+              child: Center(
+                child: Icon(Icons.play_arrow, color: Colors.white70,),),
             )
-                :CircleAvatar(
-              backgroundColor:Theme
+                : _audio[i].path.endsWith('.JPEG') ?
+            CircleAvatar(
+              backgroundImage:
+              FileImage(_audio[i]),
+            )
+                :
+            CircleAvatar(
+              backgroundColor: Theme
                   .of(context)
                   .primaryColor,
               child: Icon(Icons.settings_voice,
                 color: Colors.white,
-              ) ,
+              ),
             ),
             title: Text('${audioName[i]}'),
             trailing: IconButton(
               onPressed: () {
-                deleteFile(_audio[i].path,audioName[i]);
+                deleteFile(_audio[i].path, audioName[i]);
               },
               icon: Icon(
                 Icons.delete,
@@ -200,7 +222,7 @@ class AppBodyState extends State<AppBody> {
             ),
             onTap: () {
               if (_audio[i].path.contains('mp3') ||
-                  _audio[i].path.contains('m4a')) {
+                  _audio[i].path.contains('m4a'))  {
                 showDialog(
                     context: context,
                     barrierDismissible: false,
@@ -208,6 +230,13 @@ class AppBodyState extends State<AppBody> {
                       return PlayerWidget(
                         url: _audio[i].uri.toString(),
                       );
+                    });
+              } else if (_audio[i].path.contains('JPEG'))  {
+                showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) {
+                      return ImagePreview(_audio[i]);
                     });
               } else {
                 showDialog(
@@ -261,20 +290,30 @@ class AppBodyState extends State<AppBody> {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Visibility(child: FloatingActionButton(
-             onPressed: _videoStart,
+            onPressed: _videoStart,
             child: Icon(Icons.videocam),
             tooltip: "Capture a video",
           ), visible: !_isRecording,),
           const SizedBox(
             width: 5.0,
           ),
+          Visibility(child: FloatingActionButton(
+            onPressed: _takePicture,
+            child: Icon(Icons.camera),
+            tooltip: "Capture a video",
+          ), visible: !_isRecording,),
+          const SizedBox(
+            width: 5.0,
+          ),
           FloatingActionButton(
-             backgroundColor:
+            backgroundColor:
             _isRecording ? Colors.green : Theme
                 .of(context)
                 .primaryColor,
-            onPressed: _isRecording ? _stopAudioRecording : _startAudioRecording,
-            child: Icon(_isRecording ? Icons.mic : Icons.mic_off),
+            onPressed: _isRecording
+                ? _stopAudioRecording
+                : _startAudioRecording,
+            child: Icon(Icons.mic ),
           )
         ],
       )
@@ -360,7 +399,52 @@ class AppBodyState extends State<AppBody> {
     }
   }
 
-  io.File _videoFile;
+  _takePicture() async{
+    bool hasPermission = await checkPermission();
+    if (hasPermission) {
+      createDirectory();
+      try {
+        final io.File image = await ImagePicker.pickImage(
+            source: ImageSource.camera,);
+
+        io.Directory localDir = await getExternalStorageDirectory();
+        String fileName =
+            'IMG_${DateTime
+            .now()
+            .day}-${DateTime
+            .now()
+            .month}-${DateTime
+            .now()
+            .year}_${DateTime
+            .now()
+            .hour}:${DateTime
+            .now()
+            .minute}:${DateTime
+            .now()
+            .second}:${DateTime
+            .now()
+            .millisecond}';
+
+        final io.File newImage = await image.copy(
+            '${localDir.path}/TBB/$fileName.JPEG');
+
+        final tempDir = io.Directory(image.path);
+        tempDir.deleteSync(recursive: true);
+
+        if (newImage.path != null) {
+
+          print('Calling File load method........!!!!!!');
+          Future.delayed(Duration(seconds: 1),_loadFile);
+        }
+      } catch (e) {
+        print('Error is : ' + e.toString());
+      }
+    } else {
+      Scaffold.of(context).showSnackBar(
+          new SnackBar(content: new Text("You must accept permissions")));
+    }
+  }
+
 
   Future _videoRecord() async {
     try {
@@ -385,27 +469,27 @@ class AppBodyState extends State<AppBody> {
           .now()
           .millisecond}';
 
-      final io.File newImage = await video.copy(
+      final io.File newVideo = await video.copy(
           '${localDir.path}/TBB/$fileName.mp4');
 
       final tempDir = io.Directory(video.path);
       tempDir.deleteSync(recursive: true);
 
-      genThumbnailFile('${localDir.path}/TBB/$fileName.mp4', localDir.path+'/TBB/');
+      genThumbnailFile(
+          '${localDir.path}/TBB/$fileName.mp4', localDir.path + '/TBB/');
 
-      setState(() {
-        _videoFile = newImage;
-      });
 
-      if (_videoFile.path != null) {
-        _loadFile();
+      if (newVideo.path != null) {
+
+        print('Calling Video load method........!!!!!!');
+        Future.delayed(Duration(seconds: 1),_loadFile);
       }
     } catch (e) {
       print('Error is : ' + e.toString());
     }
   }
 
-  genThumbnailFile(String _videoPath,String _tempDir) async {
+  genThumbnailFile(String _videoPath, String _tempDir) async {
     //WidgetsFlutterBinding.ensureInitialized();
     Uint8List bytes;
     //final Completer<String> completer = Completer();
@@ -479,20 +563,20 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     return AlertDialog(
       backgroundColor: Colors.black,
       content: Container(
-      // padding: const EdgeInsets.all(20),
-      color: Colors.transparent,
-      child: AspectRatio(
-        aspectRatio: _controller.value.aspectRatio,
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: <Widget>[
-            VideoPlayer(_controller),
-            _PlayPauseOverlay(controller: _controller),
-            VideoProgressIndicator(_controller, allowScrubbing: true),
-          ],
+        // padding: const EdgeInsets.all(20),
+        color: Colors.transparent,
+        child: AspectRatio(
+          aspectRatio: _controller.value.aspectRatio,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: <Widget>[
+              VideoPlayer(_controller),
+              _PlayPauseOverlay(controller: _controller),
+              VideoProgressIndicator(_controller, allowScrubbing: true),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
